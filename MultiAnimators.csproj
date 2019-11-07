@@ -7,7 +7,7 @@
     <OutputType>Library</OutputType>
     <RootNamespace>AT_Utils</RootNamespace>
     <AssemblyName>002_MultiAnimators</AssemblyName>
-    <TargetFrameworkVersion>v2.0</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
