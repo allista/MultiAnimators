@@ -17,10 +17,8 @@ namespace AT_Utils
     {
         [KSPField] public string DragCubeA = "A";
         [KSPField] public string DragCubeB = "B";
+        [KSPField] [SerializeField] public VectorCurve CoMCurve = new VectorCurve();
 
-        [KSPField] 
-        [SerializeField]
-        public VectorCurve CoMCurve = new VectorCurve();
         public string[] GetDragCubeNames()
         {
             return new[] { DragCubeA, DragCubeB };
@@ -34,7 +32,12 @@ namespace AT_Utils
             else if(drag_cube_name == DragCubeB)
                 seek(1, false);
         }
-        public bool UsesProceduralDragCubes() { return false; }
+
+        public bool UsesProceduralDragCubes()
+        {
+            return false;
+        }
+
         public bool IsMultipleCubesActive { get { return true; } }
 
         protected override void on_norm_time(float t)
@@ -43,27 +46,30 @@ namespace AT_Utils
             part.DragCubes.SetCubeWeight(DragCubeB, 1 - t);
             if(part.DragCubes.Procedural)
                 part.DragCubes.ForceUpdate(true, true, false);
-            if(CoMCurve.Length > 0) part.CoMOffset = CoMCurve.Evaluate(t);
+            if(CoMCurve.Length > 0)
+                part.CoMOffset = CoMCurve.Evaluate(t);
         }
 
         public void UpdateCoMOffset()
         {
-            if(CoMCurve.Length == 0) return;
+            if(CoMCurve.Length == 0)
+                return;
             part.CoMOffset = CoMCurve.Evaluate(ntime);
         }
     }
 
     public class GeometryAnimatorUpdater : ModuleUpdater<MultiGeometryAnimator>
-    { 
+    {
         protected override void on_rescale(ModulePair<MultiGeometryAnimator> mp, Scale scale)
-        { 
-            mp.module.EnergyConsumption = mp.base_module.EnergyConsumption * scale.absolute.quad * scale.absolute.aspect;
+        {
+            mp.module.EnergyConsumption = mp.base_module.EnergyConsumption
+                                          * scale.absolute.quad
+                                          * scale.absolute.aspect;
             if(mp.module.CoMCurve != null)
             {
-                mp.module.CoMCurve.Scale(scale.ScaleVectorRelative(Vector3d.one)); 
+                mp.module.CoMCurve.Scale(scale.ScaleVectorRelative(Vector3d.one));
                 mp.module.UpdateCoMOffset();
             }
         }
     }
 }
-
