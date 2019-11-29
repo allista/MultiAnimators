@@ -314,7 +314,19 @@ namespace AT_Utils
         }
 
         [KSPAction("Toggle")]
-        public void ToggleAction(KSPActionParam param) { Toggle(); }
+        public void ToggleAction(KSPActionParam param)
+        {
+            var thisAction = Actions[nameof(ToggleAction)];
+            if(thisAction.actionGroup != KSPActionGroup.None)
+            {
+                if(vessel.ActionGroups[thisAction.actionGroup])
+                    Open();
+                else
+                    Close();
+            }
+            else
+                Toggle();
+        }
         #endregion
 
         #region ResourceConsumer
