@@ -12,14 +12,6 @@ using UnityEngine;
 
 namespace AT_Utils
 {
-    public enum AnimatorState
-    {
-        Closed,
-        Closing,
-        Opened,
-        Opening,
-    }
-
     /// <summary>
     /// It is much less sofisticated than the stock ModuleAnimateGeneric, but has two key differences:
     /// first, it supports multiple different animations and it uses ALL the animations of the same name 
@@ -27,11 +19,14 @@ namespace AT_Utils
     /// second, it also allows for sound and particle emitter to acompany the animation, 
     /// and not preconfigured event-based, but realtime adjusted.
     /// </summary>
-    public class MultiAnimator : SerializableFiledsPartModule, IResourceConsumer, IScalarModule
+    public class MultiAnimator : SerializableFiledsPartModule, IAnimator, IResourceConsumer, IScalarModule
     {
         //animation
         [KSPField(isPersistant = true)]  public AnimatorState State;
         [KSPField(isPersistant = false)] public string AnimatorID = "_none_";
+
+        public string GetAnimatorID() => AnimatorID;
+        public AnimatorState GetAnimatorState() => State;
 
         [KSPField(isPersistant = false)] public string OpenEventGUIName = "";
         [KSPField(isPersistant = false)] public string CloseEventGUIName = "";
@@ -354,14 +349,6 @@ namespace AT_Utils
             evt.guiActive = evt.guiActiveUnfocused = state;
         }
         #endregion
-
-
-    }
-
-    public static class MultiAnimatorExtensions
-    {
-        public static MultiAnimator GetAnimator(this Part p, string ID)
-        { return p.Modules.GetModules<MultiAnimator>().FirstOrDefault(m => m.AnimatorID == ID); }
     }
 
     public class AnimatorUpdater : ModuleUpdater<MultiAnimator>
