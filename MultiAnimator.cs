@@ -13,10 +13,10 @@ using UnityEngine;
 namespace AT_Utils
 {
     /// <summary>
-    /// It is much less sofisticated than the stock ModuleAnimateGeneric, but has two key differences:
+    /// It is much less sophisticated than the stock ModuleAnimateGeneric, but has two key differences:
     /// first, it supports multiple different animations and it uses ALL the animations of the same name 
-    /// (think of a composit part that uses the same model with an animtion several times);
-    /// second, it also allows for sound and particle emitter to acompany the animation, 
+    /// (think of a composite part that uses the same model with an animation several times);
+    /// second, it also allows for sound and particle emitter to accompany the animation, 
     /// and not preconfigured event-based, but realtime adjusted.
     /// </summary>
     public class MultiAnimator : SerializableFiledsPartModule, IAnimator, IResourceConsumer, IScalarModule
