@@ -49,8 +49,8 @@ namespace AT_Utils
 #endif
             UpdateLights();
             //default labels
-            if(OpenEventGUIName  == string.Empty) OpenEventGUIName  = "Lights On";
-            if(CloseEventGUIName == string.Empty) CloseEventGUIName = "Lights Off";
+            if(OpenEventGUIName  == string.Empty) OpenEventGUIName  = "Enable Lights";
+            if(CloseEventGUIName == string.Empty) CloseEventGUIName = "Disable Lights";
             if(ActionGUIName     == string.Empty) ActionGUIName     = "Toggle Lights";
             Actions["ToggleAction"].actionGroup = KSPActionGroup.Light;
             AllowWhileShielded = true;
