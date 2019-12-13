@@ -104,6 +104,9 @@ namespace AT_Utils
             foreach(var aname in Utils.ParseLine(AnimationNames, Utils.Whitespace))
             {
                 var animations = part.FindModelAnimators(aname);
+#if DEBUG
+                this.Log("setup_animation: '{}' animation: {}", aname, animations);
+#endif
                 if(animations == null || animations.Length == 0)
                 {
                     this.Log("setup_animation: there's no '{}' animation in {}", 

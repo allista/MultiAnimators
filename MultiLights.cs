@@ -43,6 +43,10 @@ namespace AT_Utils
             foreach(var l in LightNames.Split(new []{' '}, StringSplitOptions.RemoveEmptyEntries))
                 lights.AddRange(part.FindModelComponents<Light>(l));
             lights.ForEach(l => ranges[l.GetInstanceID()] = l.range);
+#if DEBUG
+            this.Log("OnStart: '{}' lights: {}", LightNames, lights);
+            lights.ForEach(l => Utils.Log($"{l} [{l.enabled}]: range {l.range}, intensity {l.intensity}, color {l.color}"));
+#endif
             UpdateLights();
             //default labels
             if(OpenEventGUIName  == string.Empty) OpenEventGUIName  = "Lights On";
