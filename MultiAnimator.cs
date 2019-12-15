@@ -101,26 +101,26 @@ namespace AT_Utils
         {
             //animations
             animation_states.Clear();
-            foreach(var aname in Utils.ParseLine(AnimationNames, Utils.Whitespace))
+            foreach(var clipName in Utils.ParseLine(AnimationNames, Utils.Whitespace))
             {
-                var animations = part.FindModelAnimators(aname);
+                var animations = part.FindModelAnimators(clipName);
 #if DEBUG
                 this.Log("setup_animation: '{}' animation: {}", aname, animations);
 #endif
                 if(animations == null || animations.Length == 0)
                 {
                     this.Log("setup_animation: there's no '{}' animation in {}", 
-                             aname, part.Title());
+                             clipName, part.Title());
                     continue;
                 }
                 foreach(Animation anim in animations)
                 {
-                    var animationState = anim[aname];
+                    var animationState = anim[clipName];
                     if(animationState == null) continue;
                     animationState.speed = 0;
                     animationState.enabled = true;
                     animationState.wrapMode = WrapMode.ClampForever;
-                    anim.Blend(aname);
+                    anim.Blend(clipName);
                     animation_states.Add(animationState);
                 }
             }
