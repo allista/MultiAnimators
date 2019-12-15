@@ -160,7 +160,7 @@ namespace AT_Utils
             update_events();
         }
 
-        protected float ntime 
+        protected float n_time
         { 
             get 
             { 
@@ -172,8 +172,8 @@ namespace AT_Utils
         protected void set_progress(float p, bool update_state = true)
         {
             progress = p;
-            seek(ntime, update_state);
             if(update_state) on_stop.Fire(progress);
+            seek(n_time, update_state);
         }
 
         protected void seek(float t, bool update_state = true)

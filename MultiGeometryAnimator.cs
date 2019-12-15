@@ -54,7 +54,7 @@ namespace AT_Utils
         {
             if(CoMCurve.Length == 0)
                 return;
-            part.CoMOffset = CoMCurve.Evaluate(ntime);
+            part.CoMOffset = CoMCurve.Evaluate(n_time);
         }
     }
 
