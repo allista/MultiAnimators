@@ -397,6 +397,8 @@ namespace AT_Utils
             mp.module.EnergyConsumption = mp.base_module.EnergyConsumption
                                           * scale.absolute.quad
                                           * scale.absolute.aspect;
+            mp.module.ForwardSpeed = mp.base_module.ForwardSpeed / (scale.absolute * scale.aspect);
+            mp.module.ReverseSpeed = mp.base_module.ReverseSpeed / (scale.absolute * scale.aspect);
         }
     }
 }
