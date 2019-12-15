@@ -67,9 +67,6 @@ namespace AT_Utils
             if(!socket.TransferResource()) return;
             if(socket.PartialTransfer) { Close(); update_events(); socket.Clear(); }
         }
-
-        public override void FixedUpdate()
-        { if(HighLogic.LoadedSceneIsFlight) consume_energy(); }
     }
 
     public class HangarLightUpdater : ModuleUpdater<MultiLights>
