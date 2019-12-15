@@ -21,6 +21,9 @@ namespace AT_Utils
     /// </summary>
     public class MultiAnimator : SerializableFiledsPartModule, IAnimator, IResourceConsumer, IScalarModule
     {
+        private const float IN_EDITOR_PLAY_TIME = 3f;
+        private float in_editor_speed_multiplier = 1f;
+
         //animation
         [KSPField(isPersistant = true)]  public AnimatorState State;
         [KSPField(isPersistant = false)] public string AnimatorID = "_none_";
@@ -132,6 +135,8 @@ namespace AT_Utils
                 this.Log("setup_animation: animation length is zero!\n" +
                          "Part: {}, AnimationNames: {}", 
                          part.Title(), AnimationNames);
+            else if(Duration > IN_EDITOR_PLAY_TIME)
+                in_editor_speed_multiplier = Duration / IN_EDITOR_PLAY_TIME; 
             //emitter
             hasEmitter = false;
             emitter = part.FindModelComponents<KSPParticleEmitter>().FirstOrDefault();
@@ -199,13 +204,16 @@ namespace AT_Utils
             if(!Playing)
                 return;
             //calculate animation speed
-            float speed = (State == AnimatorState.Opening || State == AnimatorState.Opened)? 
-                ForwardSpeed : -ReverseSpeed;
-            if(Reverse) speed *= -1;
-            if(HighLogic.LoadedSceneIsEditor) 
-                speed *= 1 - 10 * (progress - 1) * progress;
+            float speed;
+            var forward = State == AnimatorState.Opening
+                          || State == AnimatorState.Opened;
+            if(HighLogic.LoadedSceneIsEditor)
+                speed = forward ? in_editor_speed_multiplier : -in_editor_speed_multiplier;
             else
+            {
+                speed = forward ? ForwardSpeed : -ReverseSpeed;
                 speed *= speed_multiplier * TimeWarp.CurrentRate;
+            }
             if(Reverse)
                 speed *= -1;
             //set animation speed, compute total progress
