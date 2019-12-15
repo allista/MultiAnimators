@@ -52,6 +52,7 @@ namespace AT_Utils
 
         protected readonly List<AnimationState> animation_states = new List<AnimationState>();
         //emitter
+        protected bool hasEmitter { get; private set; }
         protected KSPParticleEmitter emitter;
         protected readonly int[] base_emission = new int[2];
         float speed_multiplier = 1f;
@@ -63,6 +64,7 @@ namespace AT_Utils
         [KSPField] public float  MaxPitch    = 1f;
         [KSPField] public float  MinPitch    = 0.1f;
         public FXGroup fxSound;
+        protected bool hasSound { get; private set; }
         //energy consumption
         protected ResourcePump socket;
 
@@ -75,14 +77,14 @@ namespace AT_Utils
 
         protected virtual void onPause()
         {
-            if(fxSound.audio == null) return;
-            if(fxSound.audio.isPlaying) fxSound.audio.Pause();
+            if(hasSound && fxSound.audio.isPlaying)
+                fxSound.audio.Pause();
         }
 
         protected virtual void onUnpause()
         {
-            if(fxSound.audio == null) return;
-            if(Playing) fxSound.audio.Play();
+            if(hasSound && Playing)
+                fxSound.audio.Play();
         }
 
         public override void OnAwake()
@@ -131,17 +133,22 @@ namespace AT_Utils
                          "Part: {}, AnimationNames: {}", 
                          part.Title(), AnimationNames);
             //emitter
+            hasEmitter = false;
             emitter = part.FindModelComponents<KSPParticleEmitter>().FirstOrDefault();
             if(emitter != null) 
             {
                 base_emission[0] = emitter.minEmission;
                 base_emission[1] = emitter.maxEmission;
+                hasEmitter = true;
             }
             //initialize sound
+            hasSound = false;
             if(Sound != string.Empty)
             {
                 Utils.createFXSound(part, fxSound, Sound, true, MaxDistance);
-                fxSound.audio.volume = GameSettings.SHIP_VOLUME * MaxVolume;
+                hasSound = fxSound.audio != null;
+                if(hasSound)
+                    fxSound.audio.volume = GameSettings.SHIP_VOLUME * MaxVolume;
             }
         }
 
@@ -245,16 +252,16 @@ namespace AT_Utils
 
         protected void update_emitter()
         {
-            if(emitter != null)
-            {
-                emitter.minEmission = (int)Mathf.Ceil(base_emission[0]*speed_multiplier);
-                emitter.maxEmission = (int)Mathf.Ceil(base_emission[1]*speed_multiplier);
-            }
+            if(!hasEmitter)
+                return;
+            emitter.minEmission = (int)Mathf.Ceil(base_emission[0] * speed_multiplier);
+            emitter.maxEmission = (int)Mathf.Ceil(base_emission[1] * speed_multiplier);
         }
 
         void update_sound_params()
         {
-            if(fxSound.audio == null) return;
+            if(!hasSound)
+                return;
             fxSound.audio.pitch = Mathf.Lerp(MinPitch, MaxPitch, speed_multiplier);
             fxSound.audio.volume = GameSettings.SHIP_VOLUME
                                    * Mathf.Lerp(MinVolume, MaxVolume, speed_multiplier);
@@ -270,7 +277,8 @@ namespace AT_Utils
         #region Events & Actions
         private void enable_emitter(bool enable = true)
         {
-            if(emitter == null) return;
+            if(!hasEmitter)
+                return;
             update_emitter();
             emitter.emit = enable;
             emitter.enabled = enable;
@@ -284,7 +292,7 @@ namespace AT_Utils
             case AnimatorState.Closed:
             case AnimatorState.Closing:
                 enable_emitter(false);
-                if(fxSound.audio != null)
+                if(hasSound)
                     fxSound.audio.Stop();
                 Events["Toggle"].guiName = OpenEventGUIName;
                 Events["Toggle"].active = !string.IsNullOrEmpty(OpenEventGUIName);
@@ -292,7 +300,7 @@ namespace AT_Utils
             case AnimatorState.Opened:
             case AnimatorState.Opening:
                 enable_emitter();
-                if(fxSound.audio != null) 
+                if(hasSound) 
                     fxSound.audio.Play();
                 Events["Toggle"].guiName = CloseEventGUIName;
                 Events["Toggle"].active = !string.IsNullOrEmpty(CloseEventGUIName);
