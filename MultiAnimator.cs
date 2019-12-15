@@ -48,8 +48,9 @@ namespace AT_Utils
         public float StopTime = 100.0f;
 
         public float Duration { get; protected set; }
-        public bool  Playing { get { return State == AnimatorState.Opening || State == AnimatorState.Closing; } }
-        protected List<AnimationState> animation_states = new List<AnimationState>();
+        public bool  Playing => State == AnimatorState.Opening || State == AnimatorState.Closing;
+
+        protected readonly List<AnimationState> animation_states = new List<AnimationState>();
         //emitter
         protected KSPParticleEmitter emitter;
         protected readonly int[] base_emission = new int[2];
@@ -172,21 +173,24 @@ namespace AT_Utils
         protected void set_progress(float p, bool update_state = true)
         {
             progress = p;
-            if(update_state) on_stop.Fire(progress);
             seek(n_time, update_state);
+            if(update_state)
+                on_stop.Fire(progress);
         }
 
         protected void seek(float t, bool update_state = true)
         {
             animation_states.ForEach(s => s.normalizedTime = t);
-            if(update_state) on_norm_time(t);
+            if(update_state)
+                on_norm_time(t);
         }
 
         protected virtual void on_norm_time(float t) {}
 
         public virtual void Update()
         {
-            if(!Playing) return;
+            if(!Playing)
+                return;
             //calculate animation speed
             float speed = (State == AnimatorState.Opening || State == AnimatorState.Opened)? 
                 ForwardSpeed : -ReverseSpeed;
@@ -195,12 +199,14 @@ namespace AT_Utils
                 speed *= 1 - 10 * (progress - 1) * progress;
             else
                 speed *= speed_multiplier * TimeWarp.CurrentRate;
+            if(Reverse)
+                speed *= -1;
             //set animation speed, compute total progress
             float _progress = 1;
             for(int i = 0, count = animation_states.Count; i < count; i++)
             {
                 var state = animation_states[i];
-                float time = Mathf.Clamp01(state.normalizedTime);
+                var time = Mathf.Clamp01(state.normalizedTime);
                 state.normalizedTime = time;
                 _progress = Math.Min(_progress, time);
                 state.speed = speed;
@@ -212,11 +218,17 @@ namespace AT_Utils
             on_stop.Fire(progress);
             //check progress
             if(State == AnimatorState.Opening && progress >= 1)
-            { if(Loop) set_progress(0); else State = AnimatorState.Opened; }
-            else if(State == AnimatorState.Closing && progress <= 0) 
+            {
+                if(Loop)
+                    set_progress(0);
+                else
+                    State = AnimatorState.Opened;
+            }
+            else if(State == AnimatorState.Closing && progress <= 0)
                 State = AnimatorState.Closed;
             //stop the animation if not playing anymore
-            if(!Playing) animation_states.ForEach(s => s.speed = 0);
+            if(!Playing)
+                animation_states.ForEach(s => s.speed = 0);
         }
 
         protected virtual void consume_energy()
@@ -244,17 +256,19 @@ namespace AT_Utils
         {
             if(fxSound.audio == null) return;
             fxSound.audio.pitch = Mathf.Lerp(MinPitch, MaxPitch, speed_multiplier);
-            fxSound.audio.volume = GameSettings.SHIP_VOLUME * Mathf.Lerp(MinVolume, MaxVolume, speed_multiplier);
+            fxSound.audio.volume = GameSettings.SHIP_VOLUME
+                                   * Mathf.Lerp(MinVolume, MaxVolume, speed_multiplier);
         }
 
         public virtual void FixedUpdate()
         {
             //consume energy if playing
-            if(HighLogic.LoadedSceneIsFlight && socket != null)    consume_energy();
+            if(HighLogic.LoadedSceneIsFlight && socket != null)
+                consume_energy();
         }
 
         #region Events & Actions
-        void enable_emitter(bool enable = true)
+        private void enable_emitter(bool enable = true)
         {
             if(emitter == null) return;
             update_emitter();
@@ -328,22 +342,28 @@ namespace AT_Utils
         #endregion
 
         #region ResourceConsumer
-        static readonly List<PartResourceDefinition> consumed_resources = new List<PartResourceDefinition>{Utils.ElectricCharge.def};
-        public List<PartResourceDefinition> GetConsumedResources() 
-        { return EnergyConsumption > 0? consumed_resources : new List<PartResourceDefinition>(); }
+        private static readonly List<PartResourceDefinition> consumed_resources =
+            new List<PartResourceDefinition> { Utils.ElectricCharge.def };
+
+        public List<PartResourceDefinition> GetConsumedResources()
+        {
+            return EnergyConsumption > 0
+                ? consumed_resources
+                : new List<PartResourceDefinition>();
+        }
         #endregion
 
         #region ScalarModule
         protected EventData<float, float> on_move = new EventData<float, float>("OnMove");
         protected EventData<float> on_stop = new EventData<float>("OnStop");
 
-        public string ScalarModuleID { get { return "ModuleAnimator."+AnimatorID; } }
-        public float GetScalar { get { return progress; } }
-        public bool CanMove { get { return AllowWhileShielded || !part.ShieldedFromAirstream; } }
-        public EventData<float, float> OnMoving { get { return on_move; } }
-        public EventData<float> OnStop { get { return on_stop; } }
-        public void SetScalar(float t) { set_progress(t); }
-        public bool IsMoving() { return Playing; }
+        public string ScalarModuleID => $"ModuleAnimator.{AnimatorID}";
+        public float GetScalar => progress;
+        public bool CanMove => AllowWhileShielded || !part.ShieldedFromAirstream;
+        public EventData<float, float> OnMoving => on_move;
+        public EventData<float> OnStop => on_stop;
+        public void SetScalar(float t) => set_progress(t);
+        public bool IsMoving() => Playing;
 
         public void SetUIRead(bool state) {}
         public void SetUIWrite(bool state)
@@ -355,9 +375,13 @@ namespace AT_Utils
     }
 
     public class AnimatorUpdater : ModuleUpdater<MultiAnimator>
-    { 
+    {
         protected override void on_rescale(ModulePair<MultiAnimator> mp, Scale scale)
-        { mp.module.EnergyConsumption = mp.base_module.EnergyConsumption * scale.absolute.quad * scale.absolute.aspect; }
+        {
+            mp.module.EnergyConsumption = mp.base_module.EnergyConsumption
+                                          * scale.absolute.quad
+                                          * scale.absolute.aspect;
+        }
     }
 }
 
