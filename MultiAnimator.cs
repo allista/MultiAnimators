@@ -65,9 +65,9 @@ namespace AT_Utils
         //energy consumption
         protected ResourcePump socket;
 
-        public virtual void SetSpeedMultiplier(float mult)
+        public virtual void SetSpeedMultiplier(float multiplier)
         {
-            speed_multiplier = mult;
+            speed_multiplier = multiplier;
             update_sound_params();
             update_emitter();
         }
