@@ -111,7 +111,7 @@ namespace AT_Utils
             {
                 var animations = part.FindModelAnimators(clipName);
 #if DEBUG
-                this.Log("setup_animation: '{}' animation: {}", aname, animations);
+                this.Log("setup_animation: '{}' animation: {}", clipName, animations);
 #endif
                 if(animations == null || animations.Length == 0)
                 {
