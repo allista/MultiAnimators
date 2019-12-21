@@ -43,10 +43,14 @@ namespace AT_Utils
             foreach(var l in LightNames.Split(new []{' '}, StringSplitOptions.RemoveEmptyEntries))
                 lights.AddRange(part.FindModelComponents<Light>(l));
             lights.ForEach(l => ranges[l.GetInstanceID()] = l.range);
+#if DEBUG
+            this.Log("OnStart: '{}' lights: {}", LightNames, lights);
+            lights.ForEach(l => Utils.Log($"{l} [{l.enabled}]: range {l.range}, intensity {l.intensity}, color {l.color}"));
+#endif
             UpdateLights();
             //default labels
-            if(OpenEventGUIName  == string.Empty) OpenEventGUIName  = "Lights On";
-            if(CloseEventGUIName == string.Empty) CloseEventGUIName = "Lights Off";
+            if(OpenEventGUIName  == string.Empty) OpenEventGUIName  = "Enable Lights";
+            if(CloseEventGUIName == string.Empty) CloseEventGUIName = "Disable Lights";
             if(ActionGUIName     == string.Empty) ActionGUIName     = "Toggle Lights";
             Actions["ToggleAction"].actionGroup = KSPActionGroup.Light;
             AllowWhileShielded = true;
@@ -63,9 +67,6 @@ namespace AT_Utils
             if(!socket.TransferResource()) return;
             if(socket.PartialTransfer) { Close(); update_events(); socket.Clear(); }
         }
-
-        public override void FixedUpdate()
-        { if(HighLogic.LoadedSceneIsFlight) consume_energy(); }
     }
 
     public class HangarLightUpdater : ModuleUpdater<MultiLights>

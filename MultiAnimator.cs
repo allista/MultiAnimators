@@ -12,26 +12,24 @@ using UnityEngine;
 
 namespace AT_Utils
 {
-    public enum AnimatorState
-    {
-        Closed,
-        Closing,
-        Opened,
-        Opening,
-    }
-
     /// <summary>
-    /// It is much less sofisticated than the stock ModuleAnimateGeneric, but has two key differences:
+    /// It is much less sophisticated than the stock ModuleAnimateGeneric, but has two key differences:
     /// first, it supports multiple different animations and it uses ALL the animations of the same name 
-    /// (think of a composit part that uses the same model with an animtion several times);
-    /// second, it also allows for sound and particle emitter to acompany the animation, 
+    /// (think of a composite part that uses the same model with an animation several times);
+    /// second, it also allows for sound and particle emitter to accompany the animation, 
     /// and not preconfigured event-based, but realtime adjusted.
     /// </summary>
-    public class MultiAnimator : SerializableFiledsPartModule, IResourceConsumer, IScalarModule
+    public class MultiAnimator : SerializableFiledsPartModule, IAnimator, IResourceConsumer, IScalarModule
     {
+        private const float IN_EDITOR_PLAY_TIME = 3f;
+        private float in_editor_speed_multiplier = 1f;
+
         //animation
         [KSPField(isPersistant = true)]  public AnimatorState State;
         [KSPField(isPersistant = false)] public string AnimatorID = "_none_";
+
+        public string GetAnimatorID() => AnimatorID;
+        public AnimatorState GetAnimatorState() => State;
 
         [KSPField(isPersistant = false)] public string OpenEventGUIName = "";
         [KSPField(isPersistant = false)] public string CloseEventGUIName = "";
@@ -53,9 +51,11 @@ namespace AT_Utils
         public float StopTime = 100.0f;
 
         public float Duration { get; protected set; }
-        public bool  Playing { get { return State == AnimatorState.Opening || State == AnimatorState.Closing; } }
-        protected List<AnimationState> animation_states = new List<AnimationState>();
+        public bool  Playing => State == AnimatorState.Opening || State == AnimatorState.Closing;
+
+        protected readonly List<AnimationState> animation_states = new List<AnimationState>();
         //emitter
+        protected bool hasEmitter { get; private set; }
         protected KSPParticleEmitter emitter;
         protected readonly int[] base_emission = new int[2];
         float speed_multiplier = 1f;
@@ -67,26 +67,27 @@ namespace AT_Utils
         [KSPField] public float  MaxPitch    = 1f;
         [KSPField] public float  MinPitch    = 0.1f;
         public FXGroup fxSound;
+        protected bool hasSound { get; private set; }
         //energy consumption
         protected ResourcePump socket;
 
-        public virtual void SetSpeedMultiplier(float mult)
+        public virtual void SetSpeedMultiplier(float multiplier)
         {
-            speed_multiplier = mult;
+            speed_multiplier = multiplier;
             update_sound_params();
             update_emitter();
         }
 
         protected virtual void onPause()
         {
-            if(fxSound.audio == null) return;
-            if(fxSound.audio.isPlaying) fxSound.audio.Pause();
+            if(hasSound && fxSound.audio.isPlaying)
+                fxSound.audio.Pause();
         }
 
         protected virtual void onUnpause()
         {
-            if(fxSound.audio == null) return;
-            if(Playing) fxSound.audio.Play();
+            if(hasSound && Playing)
+                fxSound.audio.Play();
         }
 
         public override void OnAwake()
@@ -106,23 +107,26 @@ namespace AT_Utils
         {
             //animations
             animation_states.Clear();
-            foreach(var aname in Utils.ParseLine(AnimationNames, Utils.Whitespace))
+            foreach(var clipName in Utils.ParseLine(AnimationNames, Utils.Whitespace))
             {
-                var animations = part.FindModelAnimators(aname);
+                var animations = part.FindModelAnimators(clipName);
+#if DEBUG
+                this.Log("setup_animation: '{}' animation: {}", clipName, animations);
+#endif
                 if(animations == null || animations.Length == 0)
                 {
                     this.Log("setup_animation: there's no '{}' animation in {}", 
-                             aname, part.Title());
+                             clipName, part.Title());
                     continue;
                 }
                 foreach(Animation anim in animations)
                 {
-                    var animationState = anim[aname];
+                    var animationState = anim[clipName];
                     if(animationState == null) continue;
                     animationState.speed = 0;
                     animationState.enabled = true;
                     animationState.wrapMode = WrapMode.ClampForever;
-                    anim.Blend(aname);
+                    anim.Blend(clipName);
                     animation_states.Add(animationState);
                 }
             }
@@ -131,18 +135,25 @@ namespace AT_Utils
                 this.Log("setup_animation: animation length is zero!\n" +
                          "Part: {}, AnimationNames: {}", 
                          part.Title(), AnimationNames);
+            else if(Duration > IN_EDITOR_PLAY_TIME)
+                in_editor_speed_multiplier = Duration / IN_EDITOR_PLAY_TIME; 
             //emitter
+            hasEmitter = false;
             emitter = part.FindModelComponents<KSPParticleEmitter>().FirstOrDefault();
             if(emitter != null) 
             {
                 base_emission[0] = emitter.minEmission;
                 base_emission[1] = emitter.maxEmission;
+                hasEmitter = true;
             }
             //initialize sound
+            hasSound = false;
             if(Sound != string.Empty)
             {
                 Utils.createFXSound(part, fxSound, Sound, true, MaxDistance);
-                fxSound.audio.volume = GameSettings.SHIP_VOLUME * MaxVolume;
+                hasSound = fxSound.audio != null;
+                if(hasSound)
+                    fxSound.audio.volume = GameSettings.SHIP_VOLUME * MaxVolume;
             }
         }
 
@@ -162,7 +173,7 @@ namespace AT_Utils
             update_events();
         }
 
-        protected float ntime 
+        protected float n_time
         { 
             get 
             { 
@@ -174,35 +185,43 @@ namespace AT_Utils
         protected void set_progress(float p, bool update_state = true)
         {
             progress = p;
-            seek(ntime, update_state);
-            if(update_state) on_stop.Fire(progress);
+            seek(n_time, update_state);
+            if(update_state)
+                on_stop.Fire(progress);
         }
 
         protected void seek(float t, bool update_state = true)
         {
             animation_states.ForEach(s => s.normalizedTime = t);
-            if(update_state) on_norm_time(t);
+            if(update_state)
+                on_norm_time(t);
         }
 
         protected virtual void on_norm_time(float t) {}
 
         public virtual void Update()
         {
-            if(!Playing) return;
+            if(!Playing)
+                return;
             //calculate animation speed
-            float speed = (State == AnimatorState.Opening || State == AnimatorState.Opened)? 
-                ForwardSpeed : -ReverseSpeed;
-            if(Reverse) speed *= -1;
-            if(HighLogic.LoadedSceneIsEditor) 
-                speed *= 1 - 10 * (progress - 1) * progress;
+            float speed;
+            var forward = State == AnimatorState.Opening
+                          || State == AnimatorState.Opened;
+            if(HighLogic.LoadedSceneIsEditor)
+                speed = forward ? in_editor_speed_multiplier : -in_editor_speed_multiplier;
             else
+            {
+                speed = forward ? ForwardSpeed : -ReverseSpeed;
                 speed *= speed_multiplier * TimeWarp.CurrentRate;
+            }
+            if(Reverse)
+                speed *= -1;
             //set animation speed, compute total progress
             float _progress = 1;
             for(int i = 0, count = animation_states.Count; i < count; i++)
             {
                 var state = animation_states[i];
-                float time = Mathf.Clamp01(state.normalizedTime);
+                var time = Mathf.Clamp01(state.normalizedTime);
                 state.normalizedTime = time;
                 _progress = Math.Min(_progress, time);
                 state.speed = speed;
@@ -214,11 +233,17 @@ namespace AT_Utils
             on_stop.Fire(progress);
             //check progress
             if(State == AnimatorState.Opening && progress >= 1)
-            { if(Loop) set_progress(0); else State = AnimatorState.Opened; }
-            else if(State == AnimatorState.Closing && progress <= 0) 
+            {
+                if(Loop)
+                    set_progress(0);
+                else
+                    State = AnimatorState.Opened;
+            }
+            else if(State == AnimatorState.Closing && progress <= 0)
                 State = AnimatorState.Closed;
             //stop the animation if not playing anymore
-            if(!Playing) animation_states.ForEach(s => s.speed = 0);
+            if(!Playing)
+                animation_states.ForEach(s => s.speed = 0);
         }
 
         protected virtual void consume_energy()
@@ -235,30 +260,33 @@ namespace AT_Utils
 
         protected void update_emitter()
         {
-            if(emitter != null)
-            {
-                emitter.minEmission = (int)Mathf.Ceil(base_emission[0]*speed_multiplier);
-                emitter.maxEmission = (int)Mathf.Ceil(base_emission[1]*speed_multiplier);
-            }
+            if(!hasEmitter)
+                return;
+            emitter.minEmission = (int)Mathf.Ceil(base_emission[0] * speed_multiplier);
+            emitter.maxEmission = (int)Mathf.Ceil(base_emission[1] * speed_multiplier);
         }
 
         void update_sound_params()
         {
-            if(fxSound.audio == null) return;
+            if(!hasSound)
+                return;
             fxSound.audio.pitch = Mathf.Lerp(MinPitch, MaxPitch, speed_multiplier);
-            fxSound.audio.volume = GameSettings.SHIP_VOLUME * Mathf.Lerp(MinVolume, MaxVolume, speed_multiplier);
+            fxSound.audio.volume = GameSettings.SHIP_VOLUME
+                                   * Mathf.Lerp(MinVolume, MaxVolume, speed_multiplier);
         }
 
         public virtual void FixedUpdate()
         {
             //consume energy if playing
-            if(HighLogic.LoadedSceneIsFlight && socket != null)    consume_energy();
+            if(HighLogic.LoadedSceneIsFlight && socket != null)
+                consume_energy();
         }
 
         #region Events & Actions
-        void enable_emitter(bool enable = true)
+        private void enable_emitter(bool enable = true)
         {
-            if(emitter == null) return;
+            if(!hasEmitter)
+                return;
             update_emitter();
             emitter.emit = enable;
             emitter.enabled = enable;
@@ -272,7 +300,7 @@ namespace AT_Utils
             case AnimatorState.Closed:
             case AnimatorState.Closing:
                 enable_emitter(false);
-                if(fxSound.audio != null)
+                if(hasSound)
                     fxSound.audio.Stop();
                 Events["Toggle"].guiName = OpenEventGUIName;
                 Events["Toggle"].active = !string.IsNullOrEmpty(OpenEventGUIName);
@@ -280,7 +308,7 @@ namespace AT_Utils
             case AnimatorState.Opened:
             case AnimatorState.Opening:
                 enable_emitter();
-                if(fxSound.audio != null) 
+                if(hasSound) 
                     fxSound.audio.Play();
                 Events["Toggle"].guiName = CloseEventGUIName;
                 Events["Toggle"].active = !string.IsNullOrEmpty(CloseEventGUIName);
@@ -330,22 +358,28 @@ namespace AT_Utils
         #endregion
 
         #region ResourceConsumer
-        static readonly List<PartResourceDefinition> consumed_resources = new List<PartResourceDefinition>{Utils.ElectricCharge.def};
-        public List<PartResourceDefinition> GetConsumedResources() 
-        { return EnergyConsumption > 0? consumed_resources : new List<PartResourceDefinition>(); }
+        private static readonly List<PartResourceDefinition> consumed_resources =
+            new List<PartResourceDefinition> { Utils.ElectricCharge.def };
+
+        public List<PartResourceDefinition> GetConsumedResources()
+        {
+            return EnergyConsumption > 0
+                ? consumed_resources
+                : new List<PartResourceDefinition>();
+        }
         #endregion
 
         #region ScalarModule
         protected EventData<float, float> on_move = new EventData<float, float>("OnMove");
         protected EventData<float> on_stop = new EventData<float>("OnStop");
 
-        public string ScalarModuleID { get { return "ModuleAnimator."+AnimatorID; } }
-        public float GetScalar { get { return progress; } }
-        public bool CanMove { get { return AllowWhileShielded || !part.ShieldedFromAirstream; } }
-        public EventData<float, float> OnMoving { get { return on_move; } }
-        public EventData<float> OnStop { get { return on_stop; } }
-        public void SetScalar(float t) { set_progress(t); }
-        public bool IsMoving() { return Playing; }
+        public string ScalarModuleID => $"ModuleAnimator.{AnimatorID}";
+        public float GetScalar => progress;
+        public bool CanMove => AllowWhileShielded || !part.ShieldedFromAirstream;
+        public EventData<float, float> OnMoving => on_move;
+        public EventData<float> OnStop => on_stop;
+        public void SetScalar(float t) => set_progress(t);
+        public bool IsMoving() => Playing;
 
         public void SetUIRead(bool state) {}
         public void SetUIWrite(bool state)
@@ -354,20 +388,18 @@ namespace AT_Utils
             evt.guiActive = evt.guiActiveUnfocused = state;
         }
         #endregion
-
-
-    }
-
-    public static class MultiAnimatorExtensions
-    {
-        public static MultiAnimator GetAnimator(this Part p, string ID)
-        { return p.Modules.GetModules<MultiAnimator>().FirstOrDefault(m => m.AnimatorID == ID); }
     }
 
     public class AnimatorUpdater : ModuleUpdater<MultiAnimator>
-    { 
+    {
         protected override void on_rescale(ModulePair<MultiAnimator> mp, Scale scale)
-        { mp.module.EnergyConsumption = mp.base_module.EnergyConsumption * scale.absolute.quad * scale.absolute.aspect; }
+        {
+            mp.module.EnergyConsumption = mp.base_module.EnergyConsumption
+                                          * scale.absolute.quad
+                                          * scale.absolute.aspect;
+            mp.module.ForwardSpeed = mp.base_module.ForwardSpeed / (scale.absolute * scale.aspect);
+            mp.module.ReverseSpeed = mp.base_module.ReverseSpeed / (scale.absolute * scale.aspect);
+        }
     }
 }
 
