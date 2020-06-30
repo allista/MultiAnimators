@@ -47,14 +47,14 @@ namespace AT_Utils
             if(part.DragCubes.Procedural)
                 part.DragCubes.ForceUpdate(true, true, false);
             if(CoMCurve.Length > 0)
-                part.CoMOffset = CoMCurve.Evaluate(t);
+                part.UpdateCoMOffset(CoMCurve.Evaluate(t));
         }
 
         public void UpdateCoMOffset()
         {
             if(CoMCurve.Length == 0)
                 return;
-            part.CoMOffset = CoMCurve.Evaluate(n_time);
+            part.UpdateCoMOffset(CoMCurve.Evaluate(n_time));
         }
     }
 
