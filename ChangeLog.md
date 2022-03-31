@@ -1,14 +1,6 @@
-
-n.n.n / 2022-02-14
-==================
-
-  * AssemblyVersion
-  * AF:csproj
-  * csproj: added NIGHTBUILD flag to debug configuration
-  * KSP: reference changed 1.10.1 => 1.11.1
+# MultiAnimators ChangeLog
 
 v1.2.1.1 / 2022-02-14
-==================
 
   * AssemblyVersion
   * AF:csproj
@@ -16,7 +8,6 @@ v1.2.1.1 / 2022-02-14
   * KSP: reference changed 1.10.1 => 1.11.1
 
 v1.2.1 / 2020-07-05
-===================
 
   * KSP refs: 1.10.0
   * AssemblyVersion
@@ -24,7 +15,6 @@ v1.2.1 / 2020-07-05
   * Changed references to KSP-1.9.1
 
 v1.2.0 / 2019-12-22
-===================
 
   * AssemblyVersion: 1.2.0
   * Fixed DEBUG code
@@ -43,7 +33,6 @@ v1.2.0 / 2019-12-22
   * Added AT_Utils.IAnimator interface
 
 v1.1.1 / 2019-11-30
-===================
 
   * ToggleAction of multianimators syncs with its action goup if it's set
   * AssemblyVersion: 1.1.1
@@ -69,7 +58,7 @@ v1.1.1 / 2019-11-30
   * Changed references to KSP-1.3
   * Changed version to 1.1.0.1
   * Added nightbuilds.
-  * All string KSPFields defaults to "". Added warning on Duration == 0.
+  * All string KSPFields defaults to "". Added warning on Duration  0.
   * Moved to fully-manual versioning to avoid unpredicted revision number changes.
   * Updated references to 1.2.2.
   * Using SerializableFiledsPartModule and KSPField for the CoMCurve persistence.
