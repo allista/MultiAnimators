@@ -1,4 +1,4 @@
-# MultiAnimators ChangeLog
+# Multi Animators Change Log
 
 ## v1.2.1.1 / 2022-02-14
 
