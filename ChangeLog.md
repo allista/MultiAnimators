@@ -1,5 +1,10 @@
 # Multi Animators Change Log
 
+## v1.2.1.2 / 2022-04-01
+
+* Compiled for KSP 1.12.3
+* Internal project changes for CI/CD
+
 ## v1.2.1.1 / 2022-02-14
 
 * AssemblyVersion
